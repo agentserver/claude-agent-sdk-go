@@ -1,0 +1,8 @@
+# Compiled binaries
+basic
+hooks
+mcp
+interactive
+*.exe
+*.test
+*.out
