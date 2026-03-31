@@ -251,19 +251,28 @@ type ToolResultMessage struct {
 
 // TaskStartedMessage is emitted when a background task begins execution.
 type TaskStartedMessage struct {
-	Type      string `json:"type"`
-	TaskID    string `json:"task_id"`
-	SessionID string `json:"session_id"`
-	UUID      string `json:"uuid"`
+	Type         string `json:"type"`
+	TaskID       string `json:"task_id"`
+	Description  string `json:"description,omitempty"`
+	TaskType     string `json:"task_type,omitempty"`     // e.g., "agent"
+	WorkflowName string `json:"workflow_name,omitempty"` // Workflow that spawned the task
+	Prompt       string `json:"prompt,omitempty"`        // Initial prompt for the task
+	ToolUseID    string `json:"tool_use_id,omitempty"`   // Parent tool use that spawned the task
+	SessionID    string `json:"session_id"`
+	UUID         string `json:"uuid"`
 }
 
 // TaskProgressMessage is emitted periodically while a background task runs.
 type TaskProgressMessage struct {
-	Type      string     `json:"type"`
-	TaskID    string     `json:"task_id"`
-	SessionID string     `json:"session_id"`
-	UUID      string     `json:"uuid"`
-	Usage     *TaskUsage `json:"usage,omitempty"`
+	Type         string     `json:"type"`
+	TaskID       string     `json:"task_id"`
+	Description  string     `json:"description,omitempty"`
+	LastToolName string     `json:"last_tool_name,omitempty"` // Most recent tool used
+	Summary      string     `json:"summary,omitempty"`        // Progress summary text
+	ToolUseID    string     `json:"tool_use_id,omitempty"`    // Parent tool use that spawned the task
+	SessionID    string     `json:"session_id"`
+	UUID         string     `json:"uuid"`
+	Usage        *TaskUsage `json:"usage,omitempty"`
 }
 
 // TaskNotificationMessage is emitted when a background task completes, fails, or is stopped.
@@ -273,6 +282,7 @@ type TaskNotificationMessage struct {
 	Status     string     `json:"status"` // "completed", "failed", "stopped"
 	OutputFile string     `json:"output_file,omitempty"`
 	Summary    string     `json:"summary,omitempty"`
+	ToolUseID  string     `json:"tool_use_id,omitempty"` // Parent tool use that spawned the task
 	SessionID  string     `json:"session_id"`
 	UUID       string     `json:"uuid"`
 	Usage      *TaskUsage `json:"usage,omitempty"`

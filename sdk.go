@@ -346,7 +346,7 @@ func buildCLIArgs(cfg *queryConfig) []string {
 		args = append(args, "--enable-file-checkpointing")
 	}
 	for _, beta := range cfg.betas {
-		args = append(args, "--beta", beta)
+		args = append(args, "--beta", string(beta))
 	}
 	if cfg.effort != "" {
 		args = append(args, "--effort", string(cfg.effort))

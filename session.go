@@ -26,8 +26,11 @@ type SessionInfo struct {
 
 // SessionMessage is a single message within a session.
 type SessionMessage struct {
-	Role    string `json:"role"` // "user", "assistant", "system"
-	Content any    `json:"content"`
+	Type            string `json:"type"` // "user", "assistant"
+	UUID            string `json:"uuid"`
+	SessionID       string `json:"session_id"`
+	Message         any    `json:"message"`                       // Raw Anthropic API message dict
+	ParentToolUseID string `json:"parent_tool_use_id,omitempty"`
 }
 
 // ListSessionsOptions configures the list sessions command.

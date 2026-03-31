@@ -186,6 +186,11 @@ func (h *controlHandler) handleCanUseTool(ctx context.Context, reqID string, pay
 		ToolUseID             string             `json:"tool_use_id"`
 		AgentID               string             `json:"agent_id,omitempty"`
 		PermissionSuggestions []PermissionUpdate `json:"permission_suggestions,omitempty"`
+		BlockedPath           string             `json:"blocked_path,omitempty"`
+		DecisionReason        string             `json:"decision_reason,omitempty"`
+		Title                 string             `json:"title,omitempty"`
+		DisplayName           string             `json:"display_name,omitempty"`
+		Description           string             `json:"description,omitempty"`
 	}
 	if err := json.Unmarshal(payload, &req); err != nil {
 		h.sendControlResponse(reqID, map[string]any{"behavior": "allow"})
@@ -193,9 +198,14 @@ func (h *controlHandler) handleCanUseTool(ctx context.Context, reqID string, pay
 	}
 
 	permCtx := ToolPermissionContext{
-		ToolUseID:   req.ToolUseID,
-		AgentID:     req.AgentID,
-		Suggestions: req.PermissionSuggestions,
+		ToolUseID:      req.ToolUseID,
+		AgentID:        req.AgentID,
+		Suggestions:    req.PermissionSuggestions,
+		BlockedPath:    req.BlockedPath,
+		DecisionReason: req.DecisionReason,
+		Title:          req.Title,
+		DisplayName:    req.DisplayName,
+		Description:    req.Description,
 	}
 
 	result, err := h.config.canUseTool(req.ToolName, req.Input, permCtx)

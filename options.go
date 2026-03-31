@@ -41,6 +41,14 @@ const (
 	EffortMax    Effort = "max"
 )
 
+// SdkBeta identifies an opt-in beta feature.
+type SdkBeta = string
+
+const (
+	// SdkBetaContext1M enables the 1M context window beta.
+	SdkBetaContext1M SdkBeta = "context-1m-2025-08-07"
+)
+
 // ThinkingConfig configures extended thinking.
 type ThinkingConfig struct {
 	Type         string `json:"type"`                    // "enabled", "disabled", or "adaptive" (default for compatible models)
@@ -89,16 +97,20 @@ type SandboxIgnoreViolations struct {
 
 // AgentDefinition defines a subagent configuration.
 type AgentDefinition struct {
-	Description     string   `json:"description"`
-	Prompt          string   `json:"prompt"`
-	Tools           []string `json:"tools,omitempty"`
-	DisallowedTools []string `json:"disallowedTools,omitempty"`
-	Model           string   `json:"model,omitempty"`         // "sonnet", "opus", "haiku", "inherit"
-	McpServers      []string `json:"mcpServers,omitempty"`    // Reference parent MCP server names
-	Skills          []string `json:"skills,omitempty"`        // Preload specialized skills
-	MaxTurns        int      `json:"maxTurns,omitempty"`
-	InitialPrompt   string   `json:"initialPrompt,omitempty"` // Prompt sent when agent starts
-	Memory          string   `json:"memory,omitempty"`        // "user", "project", or "local"
+	Description                        string         `json:"description"`
+	Prompt                             string         `json:"prompt"`
+	Tools                              []string       `json:"tools,omitempty"`
+	DisallowedTools                    []string       `json:"disallowedTools,omitempty"`
+	Model                              string         `json:"model,omitempty"`                              // "sonnet", "opus", "haiku", "inherit"
+	McpServers                         []string       `json:"mcpServers,omitempty"`                         // Reference parent MCP server names
+	Skills                             []string       `json:"skills,omitempty"`                             // Preload specialized skills
+	MaxTurns                           int            `json:"maxTurns,omitempty"`
+	InitialPrompt                      string         `json:"initialPrompt,omitempty"`                      // Prompt sent when agent starts
+	Background                         bool           `json:"background,omitempty"`                         // Run as fire-and-forget background task
+	Memory                             string         `json:"memory,omitempty"`                             // "user", "project", or "local"
+	Effort                             Effort         `json:"effort,omitempty"`                             // Per-agent reasoning depth
+	PermissionMode                     PermissionMode `json:"permissionMode,omitempty"`                     // Per-agent tool permission strategy
+	CriticalSystemReminderExperimental string         `json:"criticalSystemReminder_EXPERIMENTAL,omitempty"` // Experimental: high-priority system reminder
 }
 
 // PermissionResult is the response from a CanUseToolFunc callback.
@@ -129,9 +141,14 @@ type PermissionRule struct {
 
 // ToolPermissionContext provides context for permission decisions.
 type ToolPermissionContext struct {
-	ToolUseID   string             `json:"tool_use_id"`
-	AgentID     string             `json:"agent_id,omitempty"`
-	Suggestions []PermissionUpdate `json:"suggestions,omitempty"` // CLI-provided permission update suggestions
+	ToolUseID      string             `json:"tool_use_id"`
+	AgentID        string             `json:"agent_id,omitempty"`
+	Suggestions    []PermissionUpdate `json:"suggestions,omitempty"`     // CLI-provided permission update suggestions
+	BlockedPath    string             `json:"blocked_path,omitempty"`    // File path that triggered the permission check
+	DecisionReason string             `json:"decision_reason,omitempty"` // Reason for the permission check
+	Title          string             `json:"title,omitempty"`           // Tool display title
+	DisplayName    string             `json:"display_name,omitempty"`    // Tool display name
+	Description    string             `json:"description,omitempty"`     // Tool description
 }
 
 // CanUseToolFunc is called when claude requests permission to use a tool.
@@ -216,7 +233,7 @@ type queryConfig struct {
 	maxBufferSize int
 
 	// Beta features
-	betas []string
+	betas []SdkBeta
 
 	// Timeouts
 	processTimeout time.Duration
@@ -451,8 +468,8 @@ func WithPersistSession(persist bool) QueryOption {
 
 // --- Beta Features ---
 
-// WithBetas enables beta feature flags (e.g., "context-1m-2025-08-07").
-func WithBetas(betas ...string) QueryOption {
+// WithBetas enables beta feature flags (e.g., SdkBetaContext1M).
+func WithBetas(betas ...SdkBeta) QueryOption {
 	return func(c *queryConfig) { c.betas = betas }
 }
 
