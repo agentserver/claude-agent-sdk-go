@@ -294,14 +294,14 @@ func (c *Client) McpStatus(ctx context.Context) ([]McpServerStatus, error) {
 
 // ReconnectMcpServer reconnects a failed MCP server by name.
 func (c *Client) ReconnectMcpServer(serverName string) error {
-	return c.sendControlRequest("reconnect_mcp_server", map[string]any{"server_name": serverName})
+	return c.sendControlRequest("mcp_reconnect", map[string]any{"serverName": serverName})
 }
 
 // ToggleMcpServer enables or disables an MCP server at runtime.
 func (c *Client) ToggleMcpServer(serverName string, enabled bool) error {
-	return c.sendControlRequest("toggle_mcp_server", map[string]any{
-		"server_name": serverName,
-		"enabled":     enabled,
+	return c.sendControlRequest("mcp_toggle", map[string]any{
+		"serverName": serverName,
+		"enabled":    enabled,
 	})
 }
 

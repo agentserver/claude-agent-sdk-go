@@ -66,7 +66,7 @@ func (h *controlHandler) sendInitialize(ctx context.Context) error {
 					"hookCallbackIds": callbackIDs,
 				}
 				if matcher.Timeout > 0 {
-					mc["timeout"] = matcher.Timeout.Milliseconds()
+					mc["timeout"] = int64(matcher.Timeout.Seconds())
 				}
 				matcherConfigs = append(matcherConfigs, mc)
 			}

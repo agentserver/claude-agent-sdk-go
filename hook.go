@@ -65,7 +65,7 @@ type HookInput struct {
 	Source string `json:"source,omitempty"` // "startup", "resume", "clear", "compact"
 
 	// SessionEnd fields.
-	ExitReason string `json:"exit_reason,omitempty"` // "completed", "interrupted", "error"
+	ExitReason string `json:"reason,omitempty"` // "clear", "resume", "logout", "prompt_input_exit", "other", "bypass_permissions_disabled"
 
 	// Tool-specific fields (PreToolUse, PostToolUse, PostToolUseFailure).
 	ToolName   string         `json:"tool_name,omitempty"`
@@ -101,13 +101,13 @@ type HookInput struct {
 	IsInterrupt bool   `json:"is_interrupt,omitempty"`
 
 	// TeammateIdle fields.
-	IdleDurationMs int64  `json:"idle_duration_ms,omitempty"`
-	TeammateID     string `json:"teammate_id,omitempty"`
+	TeammateName string `json:"teammate_name,omitempty"`
+	TeamName     string `json:"team_name,omitempty"`
 
-	// TaskCompleted / TaskCreated fields.
-	TaskID     string `json:"task_id,omitempty"`
-	TaskStatus string `json:"task_status,omitempty"` // "completed", "failed", "stopped"
-	OutputFile string `json:"output_file,omitempty"`
+	// TaskCreated / TaskCompleted fields.
+	TaskID          string `json:"task_id,omitempty"`
+	TaskSubject     string `json:"task_subject,omitempty"`
+	TaskDescription string `json:"task_description,omitempty"`
 
 	// ConfigChange fields.
 	// For ConfigChange events, Source is the settings layer that changed
@@ -146,9 +146,7 @@ type HookInput struct {
 
 	// FileChanged fields.
 	FileEvent string `json:"event,omitempty"` // "change", "add", "unlink"
-
-	// PermissionDenied fields.
-	Reason string `json:"reason,omitempty"`
+	// Note: PermissionDenied.reason shares the json:"reason" tag with SessionEnd.ExitReason above.
 }
 
 // HookOutput is the response from a hook callback.
