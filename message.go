@@ -444,22 +444,43 @@ type SystemMessage struct {
 // Subtype is one of: "success", "error_max_turns", "error_during_execution",
 // "error_max_budget_usd", "error_max_structured_output_retries", "paused".
 type ResultMessage struct {
-	Type              string             `json:"type"`
-	Subtype           string             `json:"subtype"`
-	SessionID         string             `json:"session_id"`
-	DurationMs        int                `json:"duration_ms"`
-	DurationAPIMs     int                `json:"duration_api_ms"`
-	IsError           bool               `json:"is_error"`
-	NumTurns          int                `json:"num_turns"`
-	TotalCostUSD      *float64           `json:"total_cost_usd,omitempty"`
-	Result            string             `json:"result"`
-	Errors            []string           `json:"errors,omitempty"`            // Error details when subtype is error_*
-	StopReason        string             `json:"stop_reason"`
-	Usage             *ResultUsage       `json:"usage,omitempty"`
-	ModelUsage        map[string]any     `json:"model_usage,omitempty"`       // Per-model usage breakdown
-	StructuredOutput  any                `json:"structured_output,omitempty"` // Structured output when output_format is set
-	PermissionDenials []PermissionDenial `json:"permission_denials,omitempty"`
-	UUID              string             `json:"uuid,omitempty"`
+	Type              string                  `json:"type"`
+	Subtype           string                  `json:"subtype"`
+	SessionID         string                  `json:"session_id"`
+	DurationMs        int                     `json:"duration_ms"`
+	DurationAPIMs     int                     `json:"duration_api_ms"`
+	IsError           bool                    `json:"is_error"`
+	NumTurns          int                     `json:"num_turns"`
+	TotalCostUSD      *float64                `json:"total_cost_usd,omitempty"`
+	Result            string                  `json:"result"`
+	Errors            []string                `json:"errors,omitempty"`
+	StopReason        *string                 `json:"stop_reason"`
+	Usage             *ResultUsage            `json:"usage,omitempty"`
+	ModelUsage        map[string]ModelUsage    `json:"modelUsage,omitempty"`
+	StructuredOutput  any                     `json:"structured_output,omitempty"`
+	PermissionDenials []PermissionDenial      `json:"permission_denials,omitempty"`
+	DeferredToolUse   *DeferredToolUse        `json:"deferred_tool_use,omitempty"`
+	FastModeState     FastModeState           `json:"fast_mode_state,omitempty"`
+	UUID              string                  `json:"uuid,omitempty"`
+}
+
+// ModelUsage tracks per-model token usage within a session.
+type ModelUsage struct {
+	InputTokens              int     `json:"inputTokens"`
+	OutputTokens             int     `json:"outputTokens"`
+	CacheReadInputTokens     int     `json:"cacheReadInputTokens,omitempty"`
+	CacheCreationInputTokens int     `json:"cacheCreationInputTokens,omitempty"`
+	WebSearchRequests        int     `json:"webSearchRequests,omitempty"`
+	CostUSD                  float64 `json:"costUSD,omitempty"`
+	ContextWindow            int     `json:"contextWindow,omitempty"`
+	MaxOutputTokens          int     `json:"maxOutputTokens,omitempty"`
+}
+
+// DeferredToolUse describes a tool call that was deferred for later execution.
+type DeferredToolUse struct {
+	ID    string         `json:"id"`
+	Name  string         `json:"name"`
+	Input map[string]any `json:"input"`
 }
 
 // PermissionDenial records a tool use that was denied by permission policy.

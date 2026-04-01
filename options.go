@@ -2,6 +2,7 @@ package agentsdk
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -55,7 +56,7 @@ const (
 // ThinkingConfig configures extended thinking.
 type ThinkingConfig struct {
 	Type         string `json:"type"`                    // "enabled", "disabled", or "adaptive" (default for compatible models)
-	BudgetTokens int    `json:"budget_tokens,omitempty"` // Max tokens for thinking (only for "enabled")
+	BudgetTokens int    `json:"budgetTokens,omitempty"`  // Max tokens for thinking (only for "enabled")
 }
 
 // SettingSource is a path to a Claude Code settings file.
@@ -113,22 +114,50 @@ type SandboxRipgrepConfig struct {
 	Args    []string `json:"args,omitempty"`
 }
 
+// AgentMcpServerSpec is either a server name string or an inline config map.
+// When marshalled as JSON, a string produces a bare string, and an inline config
+// produces a Record<string, McpServerConfig> object.
+type AgentMcpServerSpec struct {
+	Name   string                       // Reference an existing server by name
+	Inline map[string]McpServerConfig   // Inline server config (key = server name)
+}
+
+// MarshalJSON implements custom marshalling for the union type.
+func (s AgentMcpServerSpec) MarshalJSON() ([]byte, error) {
+	if s.Name != "" {
+		return json.Marshal(s.Name)
+	}
+	return json.Marshal(s.Inline)
+}
+
+// UnmarshalJSON implements custom unmarshalling for the union type.
+func (s *AgentMcpServerSpec) UnmarshalJSON(data []byte) error {
+	// Try string first.
+	var name string
+	if err := json.Unmarshal(data, &name); err == nil {
+		s.Name = name
+		return nil
+	}
+	// Try inline config object.
+	return json.Unmarshal(data, &s.Inline)
+}
+
 // AgentDefinition defines a subagent configuration.
 type AgentDefinition struct {
-	Description                        string         `json:"description"`
-	Prompt                             string         `json:"prompt"`
-	Tools                              []string       `json:"tools,omitempty"`
-	DisallowedTools                    []string       `json:"disallowedTools,omitempty"`
-	Model                              string         `json:"model,omitempty"`                              // "sonnet", "opus", "haiku", "inherit"
-	McpServers                         []string       `json:"mcpServers,omitempty"`                         // Reference parent MCP server names
-	Skills                             []string       `json:"skills,omitempty"`                             // Preload specialized skills
-	MaxTurns                           int            `json:"maxTurns,omitempty"`
-	InitialPrompt                      string         `json:"initialPrompt,omitempty"`                      // Prompt sent when agent starts
-	Background                         bool           `json:"background,omitempty"`                         // Run as fire-and-forget background task
-	Memory                             string         `json:"memory,omitempty"`                             // "user", "project", or "local"
-	Effort                             Effort         `json:"effort,omitempty"`                             // Per-agent reasoning depth
-	PermissionMode                     PermissionMode `json:"permissionMode,omitempty"`                     // Per-agent tool permission strategy
-	CriticalSystemReminderExperimental string         `json:"criticalSystemReminder_EXPERIMENTAL,omitempty"` // Experimental: high-priority system reminder
+	Description                        string               `json:"description"`
+	Prompt                             string               `json:"prompt"`
+	Tools                              []string             `json:"tools,omitempty"`
+	DisallowedTools                    []string             `json:"disallowedTools,omitempty"`
+	Model                              string               `json:"model,omitempty"`                              // "sonnet", "opus", "haiku", "inherit"
+	McpServers                         []AgentMcpServerSpec  `json:"mcpServers,omitempty"`                         // Server name refs or inline configs
+	Skills                             []string             `json:"skills,omitempty"`                             // Preload specialized skills
+	MaxTurns                           int                  `json:"maxTurns,omitempty"`
+	InitialPrompt                      string               `json:"initialPrompt,omitempty"`                      // Prompt sent when agent starts
+	Background                         bool                 `json:"background,omitempty"`                         // Run as fire-and-forget background task
+	Memory                             string               `json:"memory,omitempty"`                             // "user", "project", or "local"
+	Effort                             Effort               `json:"effort,omitempty"`                             // Per-agent reasoning depth
+	PermissionMode                     PermissionMode       `json:"permissionMode,omitempty"`                     // Per-agent tool permission strategy
+	CriticalSystemReminderExperimental string               `json:"criticalSystemReminder_EXPERIMENTAL,omitempty"` // Experimental: high-priority system reminder
 }
 
 // PermissionDecisionClassification classifies a permission decision for telemetry.

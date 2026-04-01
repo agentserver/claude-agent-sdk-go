@@ -36,6 +36,7 @@ type SessionMessage struct {
 // ListSessionsOptions configures the list sessions command.
 type ListSessionsOptions struct {
 	CLIPath          string
+	Dir              string // Project directory to scope session search
 	Cwd              string
 	Limit            int
 	Offset           int
@@ -45,12 +46,14 @@ type ListSessionsOptions struct {
 // GetSessionInfoOptions configures the get session info command.
 type GetSessionInfoOptions struct {
 	CLIPath string
+	Dir     string // Project directory to find the session in
 	Cwd     string
 }
 
 // GetSessionMessagesOptions configures the get session messages command.
 type GetSessionMessagesOptions struct {
 	CLIPath               string
+	Dir                   string // Project directory to find the session in
 	Cwd                   string
 	Limit                 int
 	Offset                int
@@ -61,6 +64,7 @@ type GetSessionMessagesOptions struct {
 // SessionMutationOptions configures session mutation commands.
 type SessionMutationOptions struct {
 	CLIPath string
+	Dir     string // Project directory to find the session in
 	Cwd     string
 }
 

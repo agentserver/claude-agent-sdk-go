@@ -305,15 +305,31 @@ func (c *Client) ToggleMcpServer(serverName string, enabled bool) error {
 	})
 }
 
+// McpSetServersResult contains the result of a dynamic MCP server configuration change.
+type McpSetServersResult struct {
+	Added   []string          `json:"added"`
+	Removed []string          `json:"removed"`
+	Errors  map[string]string `json:"errors,omitempty"`
+}
+
 // SetMcpServers dynamically replaces all MCP server configurations.
-func (c *Client) SetMcpServers(servers map[string]McpServerConfig) error {
+// Returns information about which servers were added, removed, and any errors.
+func (c *Client) SetMcpServers(ctx context.Context, servers map[string]McpServerConfig) (*McpSetServersResult, error) {
 	serversJSON, err := json.Marshal(servers)
 	if err != nil {
-		return fmt.Errorf("marshal servers: %w", err)
+		return nil, fmt.Errorf("marshal servers: %w", err)
 	}
 	var serversMap map[string]any
 	json.Unmarshal(serversJSON, &serversMap)
-	return c.sendControlRequest("set_mcp_servers", map[string]any{"servers": serversMap})
+	raw, err := c.sendControlRequestWithResponse(ctx, "mcp_set_servers", map[string]any{"servers": serversMap})
+	if err != nil {
+		return nil, err
+	}
+	var result McpSetServersResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("parse set servers result: %w", err)
+	}
+	return &result, nil
 }
 
 // StopTask stops a background task.

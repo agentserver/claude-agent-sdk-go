@@ -172,9 +172,13 @@ type HookOutput struct {
 // HookSpecificOutput contains event-specific fields in a hook response.
 type HookSpecificOutput struct {
 	HookEventName            string         `json:"hookEventName"`
-	PermissionDecision       string         `json:"permissionDecision,omitempty"`       // "allow", "deny", "ask"
+	PermissionDecision       string         `json:"permissionDecision,omitempty"`       // "allow", "deny", "ask" (PreToolUse, PermissionRequest)
 	PermissionDecisionReason string         `json:"permissionDecisionReason,omitempty"` // Human-readable reason
 	UpdatedInput             map[string]any `json:"updatedInput,omitempty"`             // Modify tool input (PreToolUse allow)
 	AdditionalContext        string         `json:"additionalContext,omitempty"`        // Extra context for Claude
 	UpdatedMCPToolOutput     map[string]any `json:"updatedMCPToolOutput,omitempty"`     // Modify MCP tool output (PostToolUse)
+	InitialUserMessage       string         `json:"initialUserMessage,omitempty"`       // Override initial prompt (SessionStart)
+	WatchPaths               []string       `json:"watchPaths,omitempty"`               // File paths to watch (SessionStart, CwdChanged, FileChanged)
+	WorktreePath             string         `json:"worktreePath,omitempty"`             // Created worktree path (WorktreeCreate)
+	Retry                    bool           `json:"retry,omitempty"`                    // Retry denied tool (PermissionDenied)
 }

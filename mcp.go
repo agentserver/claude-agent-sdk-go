@@ -51,6 +51,33 @@ func (c McpServerConfig) MarshalJSON() ([]byte, error) {
 	return []byte("{}"), nil
 }
 
+// UnmarshalJSON implements custom unmarshalling for the MCP server config union.
+// It reads the "type" discriminant to determine which variant to populate.
+func (c *McpServerConfig) UnmarshalJSON(data []byte) error {
+	var discriminant struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &discriminant); err != nil {
+		return err
+	}
+	switch discriminant.Type {
+	case "stdio":
+		c.Stdio = &McpStdioServerConfig{}
+		return json.Unmarshal(data, c.Stdio)
+	case "sse":
+		c.SSE = &McpSSEServerConfig{}
+		return json.Unmarshal(data, c.SSE)
+	case "http":
+		c.HTTP = &McpHTTPServerConfig{}
+		return json.Unmarshal(data, c.HTTP)
+	case "claudeai-proxy":
+		c.Proxy = &McpProxyServerConfig{}
+		return json.Unmarshal(data, c.Proxy)
+	default:
+		return nil
+	}
+}
+
 // McpStdioServerConfig launches an MCP server as a child process.
 type McpStdioServerConfig struct {
 	Command string            `json:"command"`
