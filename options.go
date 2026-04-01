@@ -74,28 +74,43 @@ type TaskBudget struct {
 
 // SandboxSettings configures filesystem and network isolation.
 type SandboxSettings struct {
-	Enabled                   bool                     `json:"enabled"`
-	AutoAllowBashIfSandboxed  bool                     `json:"autoAllowBashIfSandboxed,omitempty"`
-	ExcludedCommands          []string                 `json:"excludedCommands,omitempty"`
-	AllowUnsandboxedCommands  bool                     `json:"allowUnsandboxedCommands,omitempty"`
-	Network                   *SandboxNetworkConfig    `json:"network,omitempty"`
-	IgnoreViolations          *SandboxIgnoreViolations `json:"ignoreViolations,omitempty"`
-	EnableWeakerNestedSandbox bool                     `json:"enableWeakerNestedSandbox,omitempty"`
+	Enabled                       bool                        `json:"enabled,omitempty"`
+	FailIfUnavailable             bool                        `json:"failIfUnavailable,omitempty"`
+	AutoAllowBashIfSandboxed      bool                        `json:"autoAllowBashIfSandboxed,omitempty"`
+	AllowUnsandboxedCommands      bool                        `json:"allowUnsandboxedCommands,omitempty"`
+	ExcludedCommands              []string                    `json:"excludedCommands,omitempty"`
+	Network                       *SandboxNetworkConfig       `json:"network,omitempty"`
+	Filesystem                    *SandboxFilesystemConfig    `json:"filesystem,omitempty"`
+	IgnoreViolations              map[string][]string         `json:"ignoreViolations,omitempty"` // pattern category → patterns
+	EnableWeakerNestedSandbox     bool                        `json:"enableWeakerNestedSandbox,omitempty"`
+	EnableWeakerNetworkIsolation  bool                        `json:"enableWeakerNetworkIsolation,omitempty"`
+	Ripgrep                       *SandboxRipgrepConfig       `json:"ripgrep,omitempty"`
 }
 
 // SandboxNetworkConfig configures network isolation for sandboxed sessions.
 type SandboxNetworkConfig struct {
-	AllowUnixSockets    []string `json:"allowUnixSockets,omitempty"`
-	AllowAllUnixSockets bool     `json:"allowAllUnixSockets,omitempty"`
-	AllowLocalBinding   bool     `json:"allowLocalBinding,omitempty"`
-	HTTPProxyPort       int      `json:"httpProxyPort,omitempty"`
-	SOCKSProxyPort      int      `json:"socksProxyPort,omitempty"`
+	AllowedDomains          []string `json:"allowedDomains,omitempty"`
+	AllowManagedDomainsOnly bool     `json:"allowManagedDomainsOnly,omitempty"`
+	AllowUnixSockets        []string `json:"allowUnixSockets,omitempty"`
+	AllowAllUnixSockets     bool     `json:"allowAllUnixSockets,omitempty"`
+	AllowLocalBinding       bool     `json:"allowLocalBinding,omitempty"`
+	HTTPProxyPort           int      `json:"httpProxyPort,omitempty"`
+	SOCKSProxyPort          int      `json:"socksProxyPort,omitempty"`
 }
 
-// SandboxIgnoreViolations configures which sandbox violation patterns to ignore.
-type SandboxIgnoreViolations struct {
-	File    []string `json:"file,omitempty"`    // File path patterns to ignore
-	Network []string `json:"network,omitempty"` // Network address patterns to ignore
+// SandboxFilesystemConfig configures filesystem access restrictions.
+type SandboxFilesystemConfig struct {
+	AllowWrite              []string `json:"allowWrite,omitempty"`
+	DenyWrite               []string `json:"denyWrite,omitempty"`
+	AllowRead               []string `json:"allowRead,omitempty"`
+	DenyRead                []string `json:"denyRead,omitempty"`
+	AllowManagedReadPathsOnly bool   `json:"allowManagedReadPathsOnly,omitempty"`
+}
+
+// SandboxRipgrepConfig configures a custom ripgrep binary for sandbox use.
+type SandboxRipgrepConfig struct {
+	Command string   `json:"command"`
+	Args    []string `json:"args,omitempty"`
 }
 
 // AgentDefinition defines a subagent configuration.
@@ -116,14 +131,24 @@ type AgentDefinition struct {
 	CriticalSystemReminderExperimental string         `json:"criticalSystemReminder_EXPERIMENTAL,omitempty"` // Experimental: high-priority system reminder
 }
 
+// PermissionDecisionClassification classifies a permission decision for telemetry.
+type PermissionDecisionClassification string
+
+const (
+	PermissionDecisionUserTemporary PermissionDecisionClassification = "user_temporary"
+	PermissionDecisionUserPermanent PermissionDecisionClassification = "user_permanent"
+	PermissionDecisionUserReject    PermissionDecisionClassification = "user_reject"
+)
+
 // PermissionResult is the response from a CanUseToolFunc callback.
 type PermissionResult struct {
-	Behavior           string             `json:"behavior"`                     // "allow", "deny", or "ask" (delegate to CLI default prompt)
-	Message            string             `json:"message,omitempty"`            // Reason message (deny/ask)
-	Interrupt          bool               `json:"interrupt,omitempty"`          // Stop execution (deny only)
-	UpdatedInput       map[string]any     `json:"updatedInput,omitempty"`       // Modified tool input (allow only)
-	UpdatedPermissions []PermissionUpdate `json:"updatedPermissions,omitempty"` // Dynamic permission rule changes (allow only)
-	Suggestions        []PermissionUpdate `json:"suggestions,omitempty"`        // Suggested permission updates for the user
+	Behavior                string                            `json:"behavior"`                               // "allow", "deny", or "ask" (delegate to CLI default prompt)
+	Message                 string                            `json:"message,omitempty"`                      // Reason message (deny/ask)
+	Interrupt               bool                              `json:"interrupt,omitempty"`                    // Stop execution (deny only)
+	UpdatedInput            map[string]any                    `json:"updatedInput,omitempty"`                 // Modified tool input (allow only)
+	UpdatedPermissions      []PermissionUpdate                `json:"updatedPermissions,omitempty"`           // Dynamic permission rule changes (allow only)
+	ToolUseID               string                            `json:"toolUseID,omitempty"`                    // Tool use ID this decision applies to
+	DecisionClassification  PermissionDecisionClassification  `json:"decisionClassification,omitempty"`       // Telemetry classification
 }
 
 // PermissionUpdate describes a dynamic change to permission rules.
@@ -138,8 +163,8 @@ type PermissionUpdate struct {
 
 // PermissionRule defines a single permission rule pattern.
 type PermissionRule struct {
-	Tool    string `json:"tool"`              // Tool name or pattern
-	Pattern string `json:"pattern,omitempty"` // Optional additional matching pattern
+	ToolName    string `json:"toolName"`              // Tool name or pattern
+	RuleContent string `json:"ruleContent,omitempty"` // Optional additional matching pattern
 }
 
 // ToolPermissionContext provides context for permission decisions.
@@ -156,7 +181,8 @@ type ToolPermissionContext struct {
 
 // CanUseToolFunc is called when claude requests permission to use a tool.
 // Return a PermissionResult to allow or deny the tool use.
-type CanUseToolFunc func(toolName string, toolInput map[string]any, ctx ToolPermissionContext) (*PermissionResult, error)
+// The context.Context is cancelled if the operation is aborted.
+type CanUseToolFunc func(ctx context.Context, toolName string, toolInput map[string]any, options ToolPermissionContext) (*PermissionResult, error)
 
 // ElicitationRequest describes an MCP elicitation request from the CLI.
 type ElicitationRequest struct {
@@ -182,10 +208,11 @@ type OnElicitationFunc func(ctx context.Context, req ElicitationRequest) (*Elici
 // queryConfig holds the resolved configuration for a Query or Client.
 type queryConfig struct {
 	// Model & Reasoning
-	model         string
-	fallbackModel string
-	thinking      *ThinkingConfig
-	effort        Effort
+	model             string
+	fallbackModel     string
+	thinking          *ThinkingConfig
+	effort            Effort
+	maxThinkingTokens *int // deprecated: use thinking
 
 	// Tools & Permissions
 	allowedTools                    []string
@@ -304,6 +331,13 @@ func WithThinking(config ThinkingConfig) QueryOption {
 // WithEffort sets the effort level for reasoning.
 func WithEffort(effort Effort) QueryOption {
 	return func(c *queryConfig) { c.effort = effort }
+}
+
+// WithMaxThinkingTokens sets the maximum thinking tokens for session initialization.
+// Deprecated: Use WithThinking instead. On Opus 4.6, this is treated as on/off
+// (0 = disabled, any other value = adaptive).
+func WithMaxThinkingTokens(tokens int) QueryOption {
+	return func(c *queryConfig) { c.maxThinkingTokens = &tokens }
 }
 
 // --- Tools & Permissions ---

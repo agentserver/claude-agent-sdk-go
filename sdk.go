@@ -368,6 +368,8 @@ func buildCLIArgs(cfg *queryConfig) []string {
 	}
 	if cfg.thinking != nil && cfg.thinking.Type == "enabled" && cfg.thinking.BudgetTokens > 0 {
 		args = append(args, "--max-thinking-tokens", fmt.Sprintf("%d", cfg.thinking.BudgetTokens))
+	} else if cfg.maxThinkingTokens != nil {
+		args = append(args, "--max-thinking-tokens", fmt.Sprintf("%d", *cfg.maxThinkingTokens))
 	}
 	if cfg.outputFormat != nil {
 		formatJSON, err := json.Marshal(cfg.outputFormat)

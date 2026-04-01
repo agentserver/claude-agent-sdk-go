@@ -242,7 +242,7 @@ func (h *controlHandler) handleCanUseTool(ctx context.Context, reqID string, pay
 		Description:    req.Description,
 	}
 
-	result, err := h.config.canUseTool(req.ToolName, req.Input, permCtx)
+	result, err := h.config.canUseTool(ctx, req.ToolName, req.Input, permCtx)
 	if err != nil {
 		h.sendControlResponse(reqID, map[string]any{
 			"behavior": "deny",

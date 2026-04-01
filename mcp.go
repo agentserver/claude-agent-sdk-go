@@ -46,7 +46,7 @@ func (c McpServerConfig) MarshalJSON() ([]byte, error) {
 		return json.Marshal(struct {
 			Type string `json:"type"`
 			*McpProxyServerConfig
-		}{"claude_ai_proxy", c.Proxy})
+		}{"claudeai-proxy", c.Proxy})
 	}
 	return []byte("{}"), nil
 }
@@ -72,7 +72,8 @@ type McpHTTPServerConfig struct {
 
 // McpProxyServerConfig connects through the claude.ai proxy for managed MCP servers.
 type McpProxyServerConfig struct {
-	ServerID string `json:"serverId,omitempty"` // Managed server identifier
+	URL      string `json:"url"`                // Proxy URL
+	ServerID string `json:"id,omitempty"`        // Managed server identifier
 }
 
 // McpSdkServer is an in-process MCP server defined in Go code.

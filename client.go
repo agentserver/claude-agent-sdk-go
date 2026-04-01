@@ -255,10 +255,32 @@ func (c *Client) StopTask(taskID string) error {
 	return c.sendControlRequest("stop_task", map[string]any{"task_id": taskID})
 }
 
+// RewindFilesResult contains the result of a rewindFiles operation.
+type RewindFilesResult struct {
+	CanRewind    bool     `json:"canRewind"`
+	Error        string   `json:"error,omitempty"`
+	FilesChanged []string `json:"filesChanged,omitempty"`
+	Insertions   int      `json:"insertions,omitempty"`
+	Deletions    int      `json:"deletions,omitempty"`
+}
+
 // RewindFiles reverts file changes to the state at a given user message.
 // Requires WithFileCheckpointing to be enabled.
-func (c *Client) RewindFiles(userMessageID string) error {
-	return c.sendControlRequest("rewind_files", map[string]any{"user_message_id": userMessageID})
+// Set dryRun to true to preview changes without modifying files.
+func (c *Client) RewindFiles(ctx context.Context, userMessageID string, dryRun bool) (*RewindFilesResult, error) {
+	params := map[string]any{"user_message_id": userMessageID}
+	if dryRun {
+		params["dry_run"] = true
+	}
+	raw, err := c.sendControlRequestWithResponse(ctx, "rewind_files", params)
+	if err != nil {
+		return nil, err
+	}
+	var result RewindFilesResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("parse rewind result: %w", err)
+	}
+	return &result, nil
 }
 
 // ServerInfo contains information about the claude server's capabilities.
@@ -340,6 +362,31 @@ func (c *Client) ReloadPlugins(ctx context.Context) (*ReloadPluginsResult, error
 	var result ReloadPluginsResult
 	if err := json.Unmarshal(raw, &result); err != nil {
 		return nil, fmt.Errorf("parse reload plugins: %w", err)
+	}
+	return &result, nil
+}
+
+// InitializationResult contains the full response from the initialize handshake.
+type InitializationResult struct {
+	Commands              []SlashCommand `json:"commands,omitempty"`
+	Agents                []AgentInfo    `json:"agents,omitempty"`
+	OutputStyle           string         `json:"output_style,omitempty"`
+	AvailableOutputStyles []string       `json:"available_output_styles,omitempty"`
+	Models                []ModelInfo    `json:"models,omitempty"`
+	Account               AccountInfo    `json:"account"`
+	FastModeState         FastModeState  `json:"fast_mode_state,omitempty"`
+}
+
+// GetInitializationResult returns the initialization result from the session handshake.
+// This includes available commands, models, account info, and output style.
+func (c *Client) GetInitializationResult(ctx context.Context) (*InitializationResult, error) {
+	raw, err := c.sendControlRequestWithResponse(ctx, "get_init_result", nil)
+	if err != nil {
+		return nil, err
+	}
+	var result InitializationResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("parse init result: %w", err)
 	}
 	return &result, nil
 }
@@ -507,12 +554,14 @@ func (c *Client) SupportedCommands(ctx context.Context) ([]SlashCommand, error) 
 
 // ModelInfo describes an available model.
 type ModelInfo struct {
+	Value                    string   `json:"value"`                              // Model identifier (e.g., "claude-opus-4-6")
 	DisplayName              string   `json:"displayName"`
 	Description              string   `json:"description,omitempty"`
 	SupportsEffort           bool     `json:"supportsEffort"`
 	SupportedEffortLevels    []string `json:"supportedEffortLevels,omitempty"`
 	SupportsAdaptiveThinking bool     `json:"supportsAdaptiveThinking"`
 	SupportsFastMode         bool     `json:"supportsFastMode"`
+	SupportsAutoMode         bool     `json:"supportsAutoMode,omitempty"`
 }
 
 // SupportedModels returns the list of available models with metadata.
@@ -552,12 +601,16 @@ func (c *Client) SupportedAgents(ctx context.Context) ([]AgentInfo, error) {
 	return resp.Agents, nil
 }
 
-// AccountInfo contains account-level information.
+// AccountInfo contains information about the logged-in user's account.
 type AccountInfo struct {
-	OrganizationID   string `json:"organizationId,omitempty"`
-	OrganizationName string `json:"organizationName,omitempty"`
-	AccountUUID      string `json:"accountUuid,omitempty"`
-	EmailAddress     string `json:"emailAddress,omitempty"`
+	Email            string `json:"email,omitempty"`
+	Organization     string `json:"organization,omitempty"`
+	SubscriptionType string `json:"subscriptionType,omitempty"`
+	TokenSource      string `json:"tokenSource,omitempty"`
+	APIKeySource     string `json:"apiKeySource,omitempty"`
+	// APIProvider is the active API backend. "firstParty" for Anthropic OAuth,
+	// "bedrock", "vertex", or "foundry" for 3P providers.
+	APIProvider string `json:"apiProvider,omitempty"`
 }
 
 // GetAccountInfo returns account-level information.

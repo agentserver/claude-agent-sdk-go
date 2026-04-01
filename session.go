@@ -222,7 +222,79 @@ func DeleteSession(sessionID string, opts *SessionMutationOptions) error {
 
 // ForkSessionResult contains the result of forking a session.
 type ForkSessionResult struct {
-	SessionID string `json:"session_id"`
+	SessionID string `json:"sessionId"`
+}
+
+// GetSubagentMessagesOptions configures the get subagent messages command.
+type GetSubagentMessagesOptions struct {
+	CLIPath string
+	Cwd     string
+	Limit   int
+	Offset  int
+}
+
+// ListSubagentsOptions configures the list subagents command.
+type ListSubagentsOptions struct {
+	CLIPath string
+	Cwd     string
+}
+
+// GetSubagentMessages returns messages from a subagent's transcript.
+func GetSubagentMessages(sessionID, agentID string, opts *GetSubagentMessagesOptions) ([]SessionMessage, error) {
+	var explicitPath string
+	if opts != nil {
+		explicitPath = opts.CLIPath
+	}
+	cliPath, err := findCLIForSession(explicitPath)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"sessions", "subagent-messages", sessionID, agentID, "--output-format", "json"}
+	if opts != nil {
+		if opts.Limit > 0 {
+			args = append(args, "--limit", fmt.Sprintf("%d", opts.Limit))
+		}
+		if opts.Offset > 0 {
+			args = append(args, "--offset", fmt.Sprintf("%d", opts.Offset))
+		}
+	}
+
+	out, err := exec.Command(cliPath, args...).Output()
+	if err != nil {
+		return nil, fmt.Errorf("get subagent messages: %w", err)
+	}
+
+	var messages []SessionMessage
+	if err := json.Unmarshal(out, &messages); err != nil {
+		return nil, fmt.Errorf("parse subagent messages: %w", err)
+	}
+	return messages, nil
+}
+
+// ListSubagents returns the agent IDs for all subagents in a session.
+func ListSubagents(sessionID string, opts *ListSubagentsOptions) ([]string, error) {
+	var explicitPath string
+	if opts != nil {
+		explicitPath = opts.CLIPath
+	}
+	cliPath, err := findCLIForSession(explicitPath)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"sessions", "list-subagents", sessionID, "--output-format", "json"}
+
+	out, err := exec.Command(cliPath, args...).Output()
+	if err != nil {
+		return nil, fmt.Errorf("list subagents: %w", err)
+	}
+
+	var agentIDs []string
+	if err := json.Unmarshal(out, &agentIDs); err != nil {
+		return nil, fmt.Errorf("parse subagent list: %w", err)
+	}
+	return agentIDs, nil
 }
 
 // ForkSession creates a new session by forking an existing one.
