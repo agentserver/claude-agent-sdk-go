@@ -119,6 +119,27 @@ func (s *Stream) Interrupt() error {
 	return s.transport.Write(string(data))
 }
 
+// Send writes a user message to the stream for multi-turn conversations.
+// This is equivalent to TS SDK's Query.streamInput().
+// The stream must not have been closed or ended.
+func (s *Stream) Send(prompt string) error {
+	if s.closed || s.transport == nil {
+		return fmt.Errorf("stream closed")
+	}
+	userMsg := map[string]any{
+		"type": "user",
+		"message": map[string]any{
+			"role":    "user",
+			"content": prompt,
+		},
+	}
+	data, err := json.Marshal(userMsg)
+	if err != nil {
+		return fmt.Errorf("marshal message: %w", err)
+	}
+	return s.transport.Write(string(data))
+}
+
 // Result drains the stream and returns the final ResultMessage.
 // This is a convenience that consumes all remaining messages.
 func (s *Stream) Result() (*ResultMessage, error) {

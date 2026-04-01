@@ -63,8 +63,8 @@ type SettingSource string
 
 // PluginConfig defines a plugin to load.
 type PluginConfig struct {
-	Name string `json:"name"`
-	Path string `json:"path,omitempty"`
+	Type string `json:"type"` // "local"
+	Path string `json:"path"`
 }
 
 // TaskBudget configures token budgets for background tasks.

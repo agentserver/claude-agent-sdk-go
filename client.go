@@ -180,22 +180,88 @@ func (c *Client) SetMaxThinkingTokens(tokens int) error {
 
 // ContextUsage contains context window usage information.
 type ContextUsage struct {
-	TotalTokens          int               `json:"totalTokens"`
-	MaxTokens            int               `json:"maxTokens"`
-	Percentage           float64           `json:"percentage"` // 0–100
-	Model                string            `json:"model"`
-	IsAutoCompactEnabled bool              `json:"isAutoCompactEnabled"`
-	Categories           []ContextCategory `json:"categories,omitempty"`
-	McpTools             []string          `json:"mcpTools,omitempty"`
-	Agents               []string          `json:"agents,omitempty"`
-	MemoryFiles          []string          `json:"memoryFiles,omitempty"`
+	TotalTokens          int                    `json:"totalTokens"`
+	MaxTokens            int                    `json:"maxTokens"`
+	RawMaxTokens         int                    `json:"rawMaxTokens,omitempty"`
+	Percentage           float64                `json:"percentage"` // 0–100
+	Model                string                 `json:"model"`
+	IsAutoCompactEnabled bool                   `json:"isAutoCompactEnabled"`
+	AutoCompactThreshold *int                   `json:"autoCompactThreshold,omitempty"`
+	Categories           []ContextCategory      `json:"categories,omitempty"`
+	McpTools             []ContextMcpTool       `json:"mcpTools,omitempty"`
+	Agents               []ContextAgent         `json:"agents,omitempty"`
+	MemoryFiles          []ContextMemoryFile    `json:"memoryFiles,omitempty"`
+	DeferredBuiltinTools []ContextDeferredTool  `json:"deferredBuiltinTools,omitempty"`
+	SystemPromptSections []ContextSection       `json:"systemPromptSections,omitempty"`
+	MessageBreakdown     *ContextMessageBreakdown `json:"messageBreakdown,omitempty"`
+	APIUsage             *MessageUsage          `json:"apiUsage,omitempty"`
 }
 
 // ContextCategory is a single category in the context usage breakdown.
 type ContextCategory struct {
+	Name       string `json:"name"`
+	Tokens     int    `json:"tokens"`
+	Color      string `json:"color"`
+	IsDeferred bool   `json:"isDeferred,omitempty"`
+}
+
+// ContextMcpTool describes an MCP tool's token usage.
+type ContextMcpTool struct {
+	Name       string `json:"name"`
+	ServerName string `json:"serverName"`
+	Tokens     int    `json:"tokens"`
+	IsLoaded   bool   `json:"isLoaded,omitempty"`
+}
+
+// ContextAgent describes an agent's token usage.
+type ContextAgent struct {
+	AgentType string `json:"agentType"`
+	Source    string `json:"source"`
+	Tokens   int    `json:"tokens"`
+}
+
+// ContextMemoryFile describes a memory file's token usage.
+type ContextMemoryFile struct {
+	Path   string `json:"path"`
+	Type   string `json:"type"`
+	Tokens int    `json:"tokens"`
+}
+
+// ContextDeferredTool describes a deferred built-in tool.
+type ContextDeferredTool struct {
+	Name     string `json:"name"`
+	Tokens   int    `json:"tokens"`
+	IsLoaded bool   `json:"isLoaded"`
+}
+
+// ContextSection describes a system prompt section's token usage.
+type ContextSection struct {
 	Name   string `json:"name"`
 	Tokens int    `json:"tokens"`
-	Color  string `json:"color"`
+}
+
+// ContextMessageBreakdown contains detailed token usage by message type.
+type ContextMessageBreakdown struct {
+	ToolCallTokens         int                      `json:"toolCallTokens"`
+	ToolResultTokens       int                      `json:"toolResultTokens"`
+	AttachmentTokens       int                      `json:"attachmentTokens"`
+	AssistantMessageTokens int                      `json:"assistantMessageTokens"`
+	UserMessageTokens      int                      `json:"userMessageTokens"`
+	ToolCallsByType        []ContextToolCallByType  `json:"toolCallsByType,omitempty"`
+	AttachmentsByType      []ContextAttachmentByType `json:"attachmentsByType,omitempty"`
+}
+
+// ContextToolCallByType breaks down tool call tokens by tool name.
+type ContextToolCallByType struct {
+	Name         string `json:"name"`
+	CallTokens   int    `json:"callTokens"`
+	ResultTokens int    `json:"resultTokens"`
+}
+
+// ContextAttachmentByType breaks down attachment tokens by type.
+type ContextAttachmentByType struct {
+	Name   string `json:"name"`
+	Tokens int    `json:"tokens"`
 }
 
 // GetContextUsage returns context window usage information.

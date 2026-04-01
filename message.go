@@ -300,6 +300,18 @@ func (m SDKMessage) AsStatus() (*StatusMessage, bool) {
 	return &msg, true
 }
 
+// AsInit returns the message if type == "system" and subtype == "init".
+func (m SDKMessage) AsInit() (*InitMessage, bool) {
+	if m.Type != "system" || m.Subtype != "init" {
+		return nil, false
+	}
+	var msg InitMessage
+	if err := json.Unmarshal(m.Raw, &msg); err != nil {
+		return nil, false
+	}
+	return &msg, true
+}
+
 // --- Other top-level type accessors ---
 
 // AsUserReplay returns the message as a UserMessageReplay if Type == "user" and IsReplay is true.
@@ -554,6 +566,29 @@ type TaskUsage struct {
 // =============================================================================
 // System subtype message types
 // =============================================================================
+
+// InitMessage is the system init message emitted at session start.
+// Contains session configuration: model, tools, permissions, etc.
+type InitMessage struct {
+	Type             string   `json:"type"`              // "system"
+	Subtype          string   `json:"subtype"`           // "init"
+	Agents           []string `json:"agents,omitempty"`
+	APIKeySource     string   `json:"apiKeySource,omitempty"`
+	Betas            []string `json:"betas,omitempty"`
+	ClaudeCodeVersion string  `json:"claude_code_version,omitempty"`
+	Cwd              string   `json:"cwd,omitempty"`
+	Tools            []string `json:"tools,omitempty"`
+	McpServers       []string `json:"mcp_servers,omitempty"`
+	Model            string   `json:"model,omitempty"`
+	PermissionMode   string   `json:"permissionMode,omitempty"`
+	SlashCommands    []string `json:"slash_commands,omitempty"`
+	OutputStyle      string   `json:"output_style,omitempty"`
+	Skills           []string `json:"skills,omitempty"`
+	Plugins          []string `json:"plugins,omitempty"`
+	FastModeState    string   `json:"fast_mode_state,omitempty"` // "off", "on", "cooldown"
+	UUID             string   `json:"uuid"`
+	SessionID        string   `json:"session_id"`
+}
 
 // APIRetryMessage is emitted when an API request fails with a retryable error.
 type APIRetryMessage struct {

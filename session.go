@@ -10,18 +10,18 @@ import (
 )
 
 // SessionInfo contains metadata about a claude session.
-// Timestamps are milliseconds since epoch, matching the TS/Python SDK conventions.
+// Timestamps are milliseconds since epoch, matching the TS SDK conventions.
 type SessionInfo struct {
-	ID           string `json:"id"`
+	SessionID    string `json:"sessionId"`
 	Summary      string `json:"summary,omitempty"`
-	LastModified int64  `json:"last_modified"`
-	FileSize     int64  `json:"file_size,omitempty"`
-	CustomTitle  string `json:"custom_title,omitempty"`
-	FirstPrompt  string `json:"first_prompt,omitempty"`
-	GitBranch    string `json:"git_branch,omitempty"`
+	LastModified int64  `json:"lastModified"`
+	FileSize     *int64 `json:"fileSize,omitempty"`
+	CustomTitle  string `json:"customTitle,omitempty"`
+	FirstPrompt  string `json:"firstPrompt,omitempty"`
+	GitBranch    string `json:"gitBranch,omitempty"`
 	Cwd          string `json:"cwd,omitempty"`
 	Tag          string `json:"tag,omitempty"`
-	CreatedAt    *int64 `json:"created_at,omitempty"`
+	CreatedAt    *int64 `json:"createdAt,omitempty"`
 }
 
 // SessionMessage is a single message within a session.

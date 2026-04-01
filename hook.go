@@ -85,6 +85,9 @@ type HookInput struct {
 	Trigger            string `json:"trigger,omitempty"`             // "manual" or "auto"
 	CustomInstructions string `json:"custom_instructions,omitempty"`
 
+	// PostCompact fields.
+	CompactSummary string `json:"compact_summary,omitempty"` // Summary produced by compaction
+
 	// Notification fields.
 	Message          string `json:"message,omitempty"`
 	Title            string `json:"title,omitempty"`
@@ -107,8 +110,10 @@ type HookInput struct {
 	OutputFile string `json:"output_file,omitempty"`
 
 	// ConfigChange fields.
-	ConfigPath string `json:"config_path,omitempty"` // Path to changed config file
-	ChangeType string `json:"change_type,omitempty"` // "created", "modified", "deleted"
+	// For ConfigChange events, Source is the settings layer that changed
+	// ("user_settings", "project_settings", "local_settings", "policy_settings", "skills").
+	// Note: shares the json:"source" tag with SessionStart's Source field above.
+	FilePath string `json:"file_path,omitempty"` // Path to changed file (ConfigChange, InstructionsLoaded, FileChanged)
 
 	// WorktreeCreate / WorktreeRemove fields.
 	WorktreePath   string `json:"worktree_path,omitempty"`
@@ -117,31 +122,33 @@ type HookInput struct {
 	// StopFailure fields.
 	FailureReason string `json:"failure_reason,omitempty"`
 
-	// PostCompact fields.
-	TokensSaved int `json:"tokens_saved,omitempty"`
-
 	// InstructionsLoaded fields.
-	InstructionsPath string `json:"instructions_path,omitempty"`
+	MemoryType      string   `json:"memory_type,omitempty"`       // "User", "Project", "Local", "Managed"
+	LoadReason      string   `json:"load_reason,omitempty"`       // "session_start", "nested_traversal", "path_glob_match", "include", "compact"
+	Globs           []string `json:"globs,omitempty"`             // Glob patterns that matched
+	TriggerFilePath string   `json:"trigger_file_path,omitempty"` // File that triggered loading
+	ParentFilePath  string   `json:"parent_file_path,omitempty"`  // Parent file for nested loads
 
 	// Elicitation fields.
-	ElicitationID string         `json:"elicitation_id,omitempty"`
-	ServerName    string         `json:"server_name,omitempty"`
-	Schema        map[string]any `json:"schema,omitempty"`
+	ElicitationID   string         `json:"elicitation_id,omitempty"`
+	McpServerName   string         `json:"mcp_server_name,omitempty"`
+	ElicitationMode string         `json:"mode,omitempty"`            // "form" or "url"
+	URL             string         `json:"url,omitempty"`
+	RequestedSchema map[string]any `json:"requested_schema,omitempty"`
 
 	// ElicitationResult fields.
-	ElicitationResponse map[string]any `json:"elicitation_response,omitempty"`
+	Action            string         `json:"action,omitempty"`  // "accept", "decline", "cancel"
+	ElicitationContent map[string]any `json:"content,omitempty"` // Response content
 
 	// CwdChanged fields.
 	OldCwd string `json:"old_cwd,omitempty"`
 	NewCwd string `json:"new_cwd,omitempty"`
 
 	// FileChanged fields.
-	FilePath       string `json:"file_path,omitempty"`
-	FileChangeType string `json:"file_change_type,omitempty"`
+	FileEvent string `json:"event,omitempty"` // "change", "add", "unlink"
 
 	// PermissionDenied fields.
-	DeniedToolName string `json:"denied_tool_name,omitempty"`
-	DeniedReason   string `json:"denied_reason,omitempty"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // HookOutput is the response from a hook callback.
