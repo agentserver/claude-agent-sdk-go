@@ -402,7 +402,7 @@ func (c *Client) writeControlRequest(requestType string, params map[string]any) 
 	}
 
 	reqID := fmt.Sprintf("sdk_%d", c.reqID.Add(1))
-	request := map[string]any{"type": requestType}
+	request := map[string]any{"subtype": requestType}
 	for k, v := range params {
 		request[k] = v
 	}

@@ -1,6 +1,9 @@
 package agentsdk
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // PermissionMode controls how tool permissions are handled.
 type PermissionMode string
@@ -155,6 +158,27 @@ type ToolPermissionContext struct {
 // Return a PermissionResult to allow or deny the tool use.
 type CanUseToolFunc func(toolName string, toolInput map[string]any, ctx ToolPermissionContext) (*PermissionResult, error)
 
+// ElicitationRequest describes an MCP elicitation request from the CLI.
+type ElicitationRequest struct {
+	ServerName      string         `json:"serverName"`
+	Message         string         `json:"message"`
+	Mode            string         `json:"mode,omitempty"`            // "form" or "url"
+	URL             string         `json:"url,omitempty"`             // URL to open (url mode only)
+	ElicitationID   string         `json:"elicitationId,omitempty"`   // Correlation ID (url mode only)
+	RequestedSchema map[string]any `json:"requestedSchema,omitempty"` // JSON Schema (form mode only)
+}
+
+// ElicitationResult is the response to an MCP elicitation request.
+type ElicitationResult struct {
+	Action  string         `json:"action"`            // "accept", "decline", "cancel"
+	Content map[string]any `json:"content,omitempty"` // Form values (accept only)
+}
+
+// OnElicitationFunc handles MCP elicitation requests from the CLI.
+// Called when an MCP server requests user input (form fields, URL auth, etc.).
+// If nil, elicitation requests are automatically declined.
+type OnElicitationFunc func(ctx context.Context, req ElicitationRequest) (*ElicitationResult, error)
+
 // queryConfig holds the resolved configuration for a Query or Client.
 type queryConfig struct {
 	// Model & Reasoning
@@ -181,6 +205,7 @@ type queryConfig struct {
 
 	// Conversation
 	resumeSessionID string
+	resumeSessionAt string // Resume from specific message UUID
 	continueSession bool
 	sessionID       string
 	forkSession     bool
@@ -207,6 +232,9 @@ type queryConfig struct {
 	hooks      map[HookEvent][]HookMatcher
 	plugins    []PluginConfig
 
+	// Agent configuration
+	agent string // Main thread agent name (--agent flag)
+
 	// Budget
 	taskBudget *TaskBudget
 
@@ -222,6 +250,20 @@ type queryConfig struct {
 	// Output
 	outputFormat           map[string]any // JSON schema for structured output
 	includePartialMessages bool
+	includeHookEvents      bool
+
+	// Elicitation
+	onElicitation OnElicitationFunc
+
+	// Prompt suggestions
+	promptSuggestions      *bool
+	agentProgressSummaries *bool
+
+	// Settings (inline object or file path)
+	settings any // map[string]any or string
+
+	// MCP config strictness
+	strictMcpConfig bool
 
 	// File checkpointing
 	fileCheckpointing bool
@@ -514,6 +556,72 @@ func WithProcessTimeout(d time.Duration) QueryOption {
 // This is an escape hatch for features not yet covered by typed options.
 func WithExtraArgs(args ...string) QueryOption {
 	return func(c *queryConfig) { c.extraArgs = args }
+}
+
+// --- Agent ---
+
+// WithAgent sets the main thread agent name, applying the agent's system prompt,
+// tool restrictions, and model to the main conversation.
+// Equivalent to the --agent CLI flag.
+func WithAgent(name string) QueryOption {
+	return func(c *queryConfig) { c.agent = name }
+}
+
+// --- Elicitation ---
+
+// WithOnElicitation sets a callback for handling MCP elicitation requests.
+// Called when an MCP server requests user input (form fields, URL auth, etc.).
+// If not set, elicitation requests are automatically declined.
+func WithOnElicitation(fn OnElicitationFunc) QueryOption {
+	return func(c *queryConfig) { c.onElicitation = fn }
+}
+
+// --- Prompt Suggestions ---
+
+// WithPromptSuggestions enables AI-generated prompt suggestions after each turn.
+// When enabled, the agent emits a PromptSuggestionMessage after each result.
+func WithPromptSuggestions(enabled bool) QueryOption {
+	return func(c *queryConfig) { c.promptSuggestions = &enabled }
+}
+
+// WithAgentProgressSummaries enables periodic AI-generated progress summaries
+// for running subagents, emitted on task_progress events via the Summary field.
+func WithAgentProgressSummaries(enabled bool) QueryOption {
+	return func(c *queryConfig) { c.agentProgressSummaries = &enabled }
+}
+
+// --- Hook Events ---
+
+// WithIncludeHookEvents includes hook lifecycle events (hook_started, hook_progress,
+// hook_response) in the output stream. SessionStart and Setup hooks are always emitted.
+func WithIncludeHookEvents(enabled bool) QueryOption {
+	return func(c *queryConfig) { c.includeHookEvents = enabled }
+}
+
+// --- Resume ---
+
+// WithResumeSessionAt resumes a session only up to the specified message UUID.
+// Use with WithResume to resume from a specific point in the conversation.
+func WithResumeSessionAt(messageUUID string) QueryOption {
+	return func(c *queryConfig) { c.resumeSessionAt = messageUUID }
+}
+
+// --- Settings ---
+
+// WithSettings provides inline settings or a path to a settings file.
+// Accepts map[string]any (inline settings object) or string (file path).
+// Inline settings are serialized to a temp file. Settings are applied at
+// the highest priority "flag settings" layer.
+func WithSettings(settings any) QueryOption {
+	return func(c *queryConfig) { c.settings = settings }
+}
+
+// --- MCP Config ---
+
+// WithStrictMcpConfig enforces strict validation of MCP server configurations.
+// When enabled, invalid configurations cause errors instead of warnings.
+func WithStrictMcpConfig(enabled bool) QueryOption {
+	return func(c *queryConfig) { c.strictMcpConfig = enabled }
 }
 
 // applyDefaults fills in default values for unset fields.

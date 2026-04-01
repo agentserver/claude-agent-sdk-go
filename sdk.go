@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/anthropics/claude-agent-sdk-go/internal/clilookup"
 	"github.com/anthropics/claude-agent-sdk-go/internal/transport"
@@ -107,7 +109,7 @@ func (s *Stream) Interrupt() error {
 		"type":       "control_request",
 		"request_id": "sdk_interrupt",
 		"request": map[string]any{
-			"type": "interrupt",
+			"subtype": "interrupt",
 		},
 	}
 	data, err := json.Marshal(req)
@@ -208,6 +210,16 @@ func Query(ctx context.Context, prompt string, opts ...QueryOption) *Stream {
 		return &Stream{err: err}
 	}
 
+	// Create control handler for hooks, permissions, and MCP tool calls.
+	handler := newControlHandler(cfg, tp)
+
+	// Send initialize handshake BEFORE user message so hooks/agents/schema
+	// are registered with the CLI before processing begins.
+	if err := handler.sendInitialize(ctx); err != nil {
+		tp.Close()
+		return &Stream{err: fmt.Errorf("initialize: %w", err)}
+	}
+
 	// Send prompt via stdin as a user message.
 	userMsg := map[string]any{
 		"type": "user",
@@ -224,15 +236,6 @@ func Query(ctx context.Context, prompt string, opts ...QueryOption) *Stream {
 	if err := tp.Write(string(data)); err != nil {
 		tp.Close()
 		return &Stream{err: fmt.Errorf("write prompt: %w", err)}
-	}
-
-	// Create control handler for hooks, permissions, and MCP tool calls.
-	handler := newControlHandler(cfg, tp)
-
-	// Send initialize handshake to register hooks and agents with the CLI.
-	if err := handler.sendInitialize(ctx); err != nil {
-		tp.Close()
-		return &Stream{err: fmt.Errorf("initialize: %w", err)}
 	}
 
 	return &Stream{
@@ -307,8 +310,14 @@ func buildCLIArgs(cfg *queryConfig) []string {
 		args = append(args, "--system-prompt-file", cfg.systemPromptFile)
 	}
 
+	if cfg.agent != "" {
+		args = append(args, "--agent", cfg.agent)
+	}
 	if cfg.resumeSessionID != "" {
 		args = append(args, "--resume", cfg.resumeSessionID)
+	}
+	if cfg.resumeSessionAt != "" {
+		args = append(args, "--resume-session-at", cfg.resumeSessionAt)
 	}
 	if cfg.continueSession {
 		args = append(args, "--continue")
@@ -321,6 +330,12 @@ func buildCLIArgs(cfg *queryConfig) []string {
 	}
 	if cfg.includePartialMessages {
 		args = append(args, "--include-partial-messages")
+	}
+	if cfg.includeHookEvents {
+		args = append(args, "--include-hook-events")
+	}
+	if cfg.strictMcpConfig {
+		args = append(args, "--strict-mcp-config")
 	}
 	if cfg.debug {
 		args = append(args, "--debug")
@@ -385,6 +400,22 @@ func buildCLIArgs(cfg *queryConfig) []string {
 		toolConfigJSON, err := json.Marshal(cfg.toolConfig)
 		if err == nil {
 			args = append(args, "--tool-config", string(toolConfigJSON))
+		}
+	}
+	if cfg.settings != nil {
+		switch v := cfg.settings.(type) {
+		case string:
+			args = append(args, "--settings", v)
+		default:
+			// Inline settings object — serialize to a temp file.
+			data, err := json.Marshal(v)
+			if err == nil {
+				tmpDir := os.TempDir()
+				tmpFile := filepath.Join(tmpDir, fmt.Sprintf("claude-sdk-settings-%d.json", os.Getpid()))
+				if os.WriteFile(tmpFile, data, 0600) == nil {
+					args = append(args, "--settings", tmpFile)
+				}
+			}
 		}
 	}
 

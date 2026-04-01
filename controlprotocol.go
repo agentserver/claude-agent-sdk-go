@@ -80,6 +80,38 @@ func (h *controlHandler) sendInitialize(ctx context.Context) error {
 		request["agents"] = h.config.agents
 	}
 
+	// Include prompt suggestions preference.
+	if h.config.promptSuggestions != nil {
+		request["promptSuggestions"] = *h.config.promptSuggestions
+	}
+
+	// Include agent progress summaries preference.
+	if h.config.agentProgressSummaries != nil {
+		request["agentProgressSummaries"] = *h.config.agentProgressSummaries
+	}
+
+	// Include JSON schema for structured output.
+	if h.config.outputFormat != nil {
+		request["jsonSchema"] = h.config.outputFormat
+	}
+
+	// Include system prompt overrides.
+	if h.config.systemPrompt != "" {
+		request["systemPrompt"] = h.config.systemPrompt
+	}
+	if h.config.systemPromptPreset != "" {
+		request["appendSystemPrompt"] = h.config.systemPromptPreset
+	}
+
+	// Register SDK MCP server names so the CLI routes messages to us.
+	if len(h.mcpServers) > 0 {
+		names := make([]string, 0, len(h.mcpServers))
+		for name := range h.mcpServers {
+			names = append(names, name)
+		}
+		request["sdkMcpServers"] = names
+	}
+
 	// Send initialize request.
 	reqID := fmt.Sprintf("sdk_init_%d", h.reqCounter.Add(1))
 	msg := map[string]any{
@@ -130,6 +162,8 @@ func (h *controlHandler) handleMessage(ctx context.Context, raw json.RawMessage)
 		go h.handleCanUseTool(ctx, req.RequestID, req.Request)
 	case "mcp_message":
 		go h.handleMcpMessage(ctx, req.RequestID, req.Request)
+	case "elicitation":
+		go h.handleElicitation(ctx, req.RequestID, req.Request)
 	default:
 		// Unknown control request — respond with empty result to unblock.
 		h.sendControlResponse(req.RequestID, map[string]any{})
@@ -376,6 +410,49 @@ func (h *controlHandler) sendControlResponse(reqID string, result map[string]any
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.tp.Write(string(data))
+}
+
+// handleElicitation dispatches an MCP elicitation request to the registered callback.
+func (h *controlHandler) handleElicitation(ctx context.Context, reqID string, payload json.RawMessage) {
+	if h.config.onElicitation == nil {
+		// Auto-decline per TS SDK behavior when no callback is registered.
+		h.sendControlResponse(reqID, map[string]any{"action": "decline"})
+		return
+	}
+
+	var req struct {
+		Subtype         string         `json:"subtype"`
+		McpServerName   string         `json:"mcp_server_name"`
+		Message         string         `json:"message"`
+		Mode            string         `json:"mode,omitempty"`
+		URL             string         `json:"url,omitempty"`
+		ElicitationID   string         `json:"elicitation_id,omitempty"`
+		RequestedSchema map[string]any `json:"requested_schema,omitempty"`
+	}
+	if err := json.Unmarshal(payload, &req); err != nil {
+		h.sendControlResponse(reqID, map[string]any{"action": "decline"})
+		return
+	}
+
+	elicReq := ElicitationRequest{
+		ServerName:      req.McpServerName,
+		Message:         req.Message,
+		Mode:            req.Mode,
+		URL:             req.URL,
+		ElicitationID:   req.ElicitationID,
+		RequestedSchema: req.RequestedSchema,
+	}
+
+	result, err := h.config.onElicitation(ctx, elicReq)
+	if err != nil {
+		h.sendControlResponse(reqID, map[string]any{"action": "decline"})
+		return
+	}
+
+	resp, _ := json.Marshal(result)
+	var respMap map[string]any
+	json.Unmarshal(resp, &respMap)
+	h.sendControlResponse(reqID, respMap)
 }
 
 // sendControlError writes an error control_response message to the transport.

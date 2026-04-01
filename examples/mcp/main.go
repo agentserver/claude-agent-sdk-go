@@ -39,7 +39,7 @@ func main() {
 	for stream.Next() {
 		msg := stream.Current()
 		if assistant, ok := msg.AsAssistant(); ok {
-			for _, block := range assistant.Content {
+			for _, block := range assistant.Message.Content {
 				if text, ok := block.AsText(); ok {
 					fmt.Print(text.Text)
 				}
