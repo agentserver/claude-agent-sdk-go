@@ -38,15 +38,17 @@ type BashOutput struct {
 
 // AgentInput is the input for the Agent tool.
 type AgentInput struct {
-	Description   string `json:"description"`
-	Prompt        string `json:"prompt"`
-	SubagentType  string `json:"subagent_type,omitempty"`
-	Model         string `json:"model,omitempty"`  // "sonnet", "opus", "haiku"
-	RunInBackground bool `json:"run_in_background,omitempty"`
-	Name          string `json:"name,omitempty"`
-	TeamName      string `json:"team_name,omitempty"`
-	Mode          string `json:"mode,omitempty"` // "acceptEdits", "bypassPermissions", "default", "dontAsk", "plan"
-	Isolation     string `json:"isolation,omitempty"` // "worktree"
+	Description     string `json:"description"`
+	Prompt          string `json:"prompt"`
+	SubagentType    string `json:"subagent_type,omitempty"`
+	Model           string `json:"model,omitempty"`            // "sonnet", "opus", "haiku"
+	Resume          string `json:"resume,omitempty"`           // Resume an existing agent session by ID
+	RunInBackground bool   `json:"run_in_background,omitempty"`
+	MaxTurns        *int   `json:"max_turns,omitempty"`        // Maximum agentic turns before stopping
+	Name            string `json:"name,omitempty"`
+	TeamName        string `json:"team_name,omitempty"`
+	Mode            string `json:"mode,omitempty"`             // "acceptEdits", "bypassPermissions", "default", "dontAsk", "plan"
+	Isolation       string `json:"isolation,omitempty"`        // "worktree"
 }
 
 // AgentOutputCompleted is returned when an agent completes synchronously.
@@ -70,6 +72,13 @@ type AgentOutputAsync struct {
 	Prompt            string `json:"prompt"`
 	OutputFile        string `json:"outputFile"`
 	CanReadOutputFile bool   `json:"canReadOutputFile,omitempty"`
+}
+
+// AgentOutputSubAgentEntered is returned when an interactive sub-agent is entered.
+type AgentOutputSubAgentEntered struct {
+	Status      string `json:"status"` // "sub_agent_entered"
+	Description string `json:"description"`
+	Message     string `json:"message"`
 }
 
 // =============================================================================

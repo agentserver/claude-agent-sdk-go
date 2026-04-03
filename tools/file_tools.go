@@ -30,13 +30,10 @@ type FileReadPayload struct {
 	TotalLines int   `json:"totalLines,omitempty"`
 
 	// Image variant fields
-	Base64       string `json:"base64,omitempty"`
-	ImageType    string `json:"type,omitempty"` // "image/jpeg", "image/png", etc.
-	OriginalSize int    `json:"originalSize,omitempty"`
-	Dimensions   *struct {
-		Width  int `json:"width"`
-		Height int `json:"height"`
-	} `json:"dimensions,omitempty"`
+	Base64       string              `json:"base64,omitempty"`
+	ImageType    string              `json:"type,omitempty"` // "image/jpeg", "image/png", etc.
+	OriginalSize int                 `json:"originalSize,omitempty"`
+	Dimensions   *ImageDimensions    `json:"dimensions,omitempty"`
 
 	// Notebook variant fields
 	Cells []any `json:"cells,omitempty"`
@@ -44,6 +41,14 @@ type FileReadPayload struct {
 	// Parts variant fields
 	Count     int    `json:"count,omitempty"`
 	OutputDir string `json:"outputDir,omitempty"`
+}
+
+// ImageDimensions describes the dimensions of an image file.
+type ImageDimensions struct {
+	OriginalWidth  *int `json:"originalWidth,omitempty"`
+	OriginalHeight *int `json:"originalHeight,omitempty"`
+	DisplayWidth   *int `json:"displayWidth,omitempty"`
+	DisplayHeight  *int `json:"displayHeight,omitempty"`
 }
 
 // =============================================================================

@@ -65,12 +65,12 @@ type HookInput struct {
 	Source string `json:"source,omitempty"` // "startup", "resume", "clear", "compact"
 
 	// SessionEnd fields.
-	ExitReason string `json:"reason,omitempty"` // "clear", "resume", "logout", "prompt_input_exit", "other", "bypass_permissions_disabled"
+	ExitReason string `json:"reason,omitempty"` // SessionEnd: "clear", "resume", "logout", etc. Also receives PermissionDenied.reason (free-form string).
 
 	// Tool-specific fields (PreToolUse, PostToolUse, PostToolUseFailure).
 	ToolName   string         `json:"tool_name,omitempty"`
 	ToolInput  map[string]any `json:"tool_input,omitempty"`
-	ToolResult any            `json:"tool_result,omitempty"` // PostToolUse only
+	ToolResponse any            `json:"tool_response,omitempty"` // PostToolUse only
 	ToolUseID  string         `json:"tool_use_id,omitempty"`
 
 	// UserPromptSubmit fields.
@@ -96,9 +96,10 @@ type HookInput struct {
 	// PermissionRequest fields.
 	PermissionSuggestions []map[string]any `json:"permission_suggestions,omitempty"`
 
-	// PostToolUseFailure fields.
+	// PostToolUseFailure / StopFailure fields.
+	// Both events send {"error": string} with the same JSON key.
 	Error       string `json:"error,omitempty"`
-	IsInterrupt bool   `json:"is_interrupt,omitempty"`
+	IsInterrupt bool   `json:"is_interrupt,omitempty"` // PostToolUseFailure only
 
 	// TeammateIdle fields.
 	TeammateName string `json:"teammate_name,omitempty"`
@@ -119,8 +120,8 @@ type HookInput struct {
 	WorktreePath   string `json:"worktree_path,omitempty"`
 	WorktreeBranch string `json:"worktree_branch,omitempty"`
 
-	// StopFailure fields.
-	FailureReason string `json:"failure_reason,omitempty"`
+	// StopFailure fields (in addition to shared Error above).
+	ErrorDetails string `json:"error_details,omitempty"` // Additional error context
 
 	// InstructionsLoaded fields.
 	MemoryType      string   `json:"memory_type,omitempty"`       // "User", "Project", "Local", "Managed"
@@ -146,7 +147,6 @@ type HookInput struct {
 
 	// FileChanged fields.
 	FileEvent string `json:"event,omitempty"` // "change", "add", "unlink"
-	// Note: PermissionDenied.reason shares the json:"reason" tag with SessionEnd.ExitReason above.
 }
 
 // HookOutput is the response from a hook callback.
@@ -170,8 +170,8 @@ type HookOutput struct {
 // HookSpecificOutput contains event-specific fields in a hook response.
 type HookSpecificOutput struct {
 	HookEventName            string         `json:"hookEventName"`
-	PermissionDecision       string         `json:"permissionDecision,omitempty"`       // "allow", "deny", "ask" (PreToolUse, PermissionRequest)
-	PermissionDecisionReason string         `json:"permissionDecisionReason,omitempty"` // Human-readable reason
+	PermissionDecision       string         `json:"permissionDecision,omitempty"`       // "allow", "deny", "ask" (PreToolUse)
+	PermissionDecisionReason string         `json:"permissionDecisionReason,omitempty"` // Human-readable reason (PreToolUse)
 	UpdatedInput             map[string]any `json:"updatedInput,omitempty"`             // Modify tool input (PreToolUse allow)
 	AdditionalContext        string         `json:"additionalContext,omitempty"`        // Extra context for Claude
 	UpdatedMCPToolOutput     map[string]any `json:"updatedMCPToolOutput,omitempty"`     // Modify MCP tool output (PostToolUse)
@@ -179,4 +179,18 @@ type HookSpecificOutput struct {
 	WatchPaths               []string       `json:"watchPaths,omitempty"`               // File paths to watch (SessionStart, CwdChanged, FileChanged)
 	WorktreePath             string         `json:"worktreePath,omitempty"`             // Created worktree path (WorktreeCreate)
 	Retry                    bool           `json:"retry,omitempty"`                    // Retry denied tool (PermissionDenied)
+
+	// PermissionRequest hook: decision object with allow/deny discriminant.
+	// Use PermissionRequestDecisionAllow or PermissionRequestDecisionDeny helpers.
+	Decision *PermissionRequestDecision `json:"decision,omitempty"`
+}
+
+// PermissionRequestDecision is the decision structure for PermissionRequest hooks.
+// Set either the Allow or Deny variant fields based on the Behavior value.
+type PermissionRequestDecision struct {
+	Behavior           string             `json:"behavior"`                     // "allow" or "deny"
+	UpdatedInput       map[string]any     `json:"updatedInput,omitempty"`       // Allow: modified tool input
+	UpdatedPermissions []PermissionUpdate `json:"updatedPermissions,omitempty"` // Allow: dynamic permission rule changes
+	Message            string             `json:"message,omitempty"`            // Deny: reason message
+	Interrupt          bool               `json:"interrupt,omitempty"`          // Deny: stop execution
 }

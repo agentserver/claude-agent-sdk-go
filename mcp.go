@@ -61,7 +61,8 @@ func (c *McpServerConfig) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch discriminant.Type {
-	case "stdio":
+	case "stdio", "":
+		// Default to stdio when type is omitted (TS SDK: type?: "stdio").
 		c.Stdio = &McpStdioServerConfig{}
 		return json.Unmarshal(data, c.Stdio)
 	case "sse":
@@ -121,10 +122,13 @@ type McpTool struct {
 }
 
 // ToolAnnotations provides metadata hints about a tool's behavior.
+// Field names follow the MCP specification's *Hint naming convention.
 type ToolAnnotations struct {
-	ReadOnly    bool `json:"readOnly,omitempty"`    // Tool only reads data, no side effects
-	Destructive bool `json:"destructive,omitempty"` // Tool may perform destructive operations
-	OpenWorld   bool `json:"openWorld,omitempty"`   // Tool interacts with external systems
+	Title          string `json:"title,omitempty"`          // Human-readable title for the tool
+	ReadOnlyHint   *bool  `json:"readOnlyHint,omitempty"`   // If true, tool does not modify its environment (default false)
+	DestructiveHint *bool `json:"destructiveHint,omitempty"` // If true, tool may perform destructive updates (default true)
+	IdempotentHint *bool  `json:"idempotentHint,omitempty"` // If true, repeated calls with same args have no additional effect (default false)
+	OpenWorldHint  *bool  `json:"openWorldHint,omitempty"`  // If true, tool interacts with external entities (default true)
 }
 
 // McpToolResult is the response from an MCP tool handler.
@@ -157,11 +161,25 @@ type McpServerInfo struct {
 }
 
 // McpToolInfo describes a tool exposed by an MCP server.
+// Annotations use the simplified field names reported by the CLI status,
+// which differ from the MCP protocol's *Hint convention used in ToolAnnotations.
 type McpToolInfo struct {
-	Name        string           `json:"name"`
-	Description string           `json:"description,omitempty"`
-	Annotations *ToolAnnotations `json:"annotations,omitempty"`
+	Name        string               `json:"name"`
+	Description string               `json:"description,omitempty"`
+	Annotations *McpToolInfoAnnotations `json:"annotations,omitempty"`
 }
+
+// McpToolInfoAnnotations are the simplified annotation fields reported by the
+// CLI in McpServerStatus. These use short names (readOnly, destructive, openWorld)
+// rather than the MCP protocol's *Hint convention.
+type McpToolInfoAnnotations struct {
+	ReadOnly    *bool `json:"readOnly,omitempty"`
+	Destructive *bool `json:"destructive,omitempty"`
+	OpenWorld   *bool `json:"openWorld,omitempty"`
+}
+
+// Bool returns a pointer to a bool value. Useful for setting ToolAnnotations fields.
+func Bool(v bool) *bool { return &v }
 
 // ToolOption configures an McpTool created by the Tool() helper.
 type ToolOption func(*McpTool)
