@@ -79,7 +79,7 @@ func TestStream_Result(t *testing.T) {
 	if res.Result != "Hi" {
 		t.Errorf("expected 'Hi', got %q", res.Result)
 	}
-	if res.TotalCostUSD == nil || *res.TotalCostUSD != 0.01 {
+	if res.TotalCostUSD != 0.01 {
 		t.Errorf("expected cost 0.01, got %v", res.TotalCostUSD)
 	}
 }

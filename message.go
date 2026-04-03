@@ -451,7 +451,7 @@ type ResultMessage struct {
 	DurationAPIMs     int                     `json:"duration_api_ms"`
 	IsError           bool                    `json:"is_error"`
 	NumTurns          int                     `json:"num_turns"`
-	TotalCostUSD      *float64                `json:"total_cost_usd,omitempty"`
+	TotalCostUSD      float64                 `json:"total_cost_usd"`
 	Result            string                  `json:"result"`
 	Errors            []string                `json:"errors,omitempty"`
 	StopReason        *string                 `json:"stop_reason"`
@@ -588,6 +588,19 @@ type TaskUsage struct {
 // System subtype message types
 // =============================================================================
 
+// McpServerStatusInfo describes an MCP server in the init message.
+type McpServerStatusInfo struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+// PluginEntry describes a loaded plugin in the init message.
+type PluginEntry struct {
+	Name   string `json:"name"`
+	Path   string `json:"path"`
+	Source string `json:"source,omitempty"`
+}
+
 // InitMessage is the system init message emitted at session start.
 // Contains session configuration: model, tools, permissions, etc.
 type InitMessage struct {
@@ -599,13 +612,13 @@ type InitMessage struct {
 	ClaudeCodeVersion string  `json:"claude_code_version,omitempty"`
 	Cwd              string   `json:"cwd,omitempty"`
 	Tools            []string `json:"tools,omitempty"`
-	McpServers       []string `json:"mcp_servers,omitempty"`
+	McpServers       []McpServerStatusInfo `json:"mcp_servers,omitempty"`
 	Model            string   `json:"model,omitempty"`
 	PermissionMode   string   `json:"permissionMode,omitempty"`
 	SlashCommands    []string `json:"slash_commands,omitempty"`
 	OutputStyle      string   `json:"output_style,omitempty"`
 	Skills           []string `json:"skills,omitempty"`
-	Plugins          []string `json:"plugins,omitempty"`
+	Plugins          []PluginEntry `json:"plugins,omitempty"`
 	FastModeState    string   `json:"fast_mode_state,omitempty"` // "off", "on", "cooldown"
 	UUID             string   `json:"uuid"`
 	SessionID        string   `json:"session_id"`

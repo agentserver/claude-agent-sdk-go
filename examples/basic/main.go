@@ -31,7 +31,7 @@ func main() {
 			result, _ := msg.AsResult()
 			fmt.Printf("\n\n--- Done (turns: %d, cost: $%.4f) ---\n",
 				result.NumTurns,
-				valueOrZero(result.TotalCostUSD),
+				result.TotalCostUSD,
 			)
 		}
 	}
@@ -40,11 +40,4 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func valueOrZero(v *float64) float64 {
-	if v != nil {
-		return *v
-	}
-	return 0
 }
