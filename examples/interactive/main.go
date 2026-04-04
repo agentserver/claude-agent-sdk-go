@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	agentsdk "github.com/anthropics/claude-agent-sdk-go"
+	agentsdk "github.com/agentserver/claude-agent-sdk-go"
 )
 
 func main() {

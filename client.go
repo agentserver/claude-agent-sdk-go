@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/anthropics/claude-agent-sdk-go/internal/clilookup"
-	"github.com/anthropics/claude-agent-sdk-go/internal/transport"
+	"github.com/agentserver/claude-agent-sdk-go/internal/clilookup"
+	"github.com/agentserver/claude-agent-sdk-go/internal/transport"
 )
 
 // Client maintains a persistent connection to a claude subprocess

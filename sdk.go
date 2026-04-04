@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/anthropics/claude-agent-sdk-go/internal/clilookup"
-	"github.com/anthropics/claude-agent-sdk-go/internal/transport"
+	"github.com/agentserver/claude-agent-sdk-go/internal/clilookup"
+	"github.com/agentserver/claude-agent-sdk-go/internal/transport"
 )
 
 // Stream iterates over SDK messages from the claude process.

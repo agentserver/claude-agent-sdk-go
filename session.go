@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/anthropics/claude-agent-sdk-go/internal/clilookup"
+	"github.com/agentserver/claude-agent-sdk-go/internal/clilookup"
 )
 
 // SessionInfo contains metadata about a claude session.

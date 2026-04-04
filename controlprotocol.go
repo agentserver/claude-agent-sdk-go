@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/anthropics/claude-agent-sdk-go/internal/transport"
+	"github.com/agentserver/claude-agent-sdk-go/internal/transport"
 )
 
 // controlHandler processes control_request messages from the claude process.

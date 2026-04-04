@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	agentsdk "github.com/anthropics/claude-agent-sdk-go"
-	"github.com/anthropics/claude-agent-sdk-go/internal/transport"
+	agentsdk "github.com/agentserver/claude-agent-sdk-go"
+	"github.com/agentserver/claude-agent-sdk-go/internal/transport"
 )
 
 func TestStream_SingleAssistantMessage(t *testing.T) {
